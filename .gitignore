@@ -1,0 +1,55 @@
+# 忽略特定文件和目录
+
+# 忽略前端依赖
+frontend/node_modules/
+frontend/dist/
+frontend/.vscode/
+
+# 忽略后端虚拟环境和临时文件
+backend/__pycache__/
+backend/.env
+backend/.env.example
+backend/.vscode/
+backend/ppt初版.pptx
+backend/modified_.pptx
+
+# 但保留前端和后端目录
+!backend/
+!frontend/
+
+# 忽略前端依赖
+frontend/node_modules/
+frontend/dist/
+frontend/.vscode/
+
+# 忽略后端虚拟环境和临时文件
+backend/__pycache__/
+backend/.env
+backend/.env.example
+backend/.vscode/
+backend/ppt初版.pptx
+backend/modified_.pptx
+
+# 忽略日志和缓存
+*.log
+__pycache__/
+
+# 忽略其他非必要文件
+*.pptx
+参考css/
+背景.jpg
+.gitignore.bak
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
