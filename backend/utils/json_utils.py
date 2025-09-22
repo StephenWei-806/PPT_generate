@@ -1,5 +1,4 @@
 import json
-import json
 def extract_json_from_text(text):
     """从文本中提取并验证JSON数据"""
 
