@@ -1,8 +1,8 @@
-import re
 import json
 import re
+
+from .llm_service import LLMService
 from utils.ppt_utils import replace_text_in_ppt
-from services.llm_service import LLMService
 from utils.json_utils import extract_json_from_text, validate_ppt_json
 
 class PPTService:
@@ -39,21 +39,17 @@ class PPTService:
             # 解析JSON并生成PPT
             # 清理Markdown代码块格式
             full_content = full_content.replace('```json', '').replace('```', '').strip()
-            print(f"[调试] 清理后的内容: {full_content}")
             
             
             try:
                 # 尝试从文本中提取JSON
                 json_str = extract_json_from_text(full_content)
-                print(f"[调试] extract_json_from_text结果: {json_str}")
-                
                 
                 # 解析提取出的JSON字符串
                 json_data = json.loads(json_str)
                 print(f"[调试] JSON解析成功: {json_data}")
                 
             except Exception as e:
-                print(f"[调试] JSON解析失败: {str(e)}")
                 
                 yield f"JSON解析失败: {str(e)}\n"
                 return
@@ -64,7 +60,6 @@ class PPTService:
                 if json_data is None:
                     raise ValueError("JSON数据未定义或为None")
                 validate_ppt_json(json_data)
-                print("[调试] JSON验证通过")
                 
             except Exception as e:
                 print(f"[调试] JSON验证失败: {str(e)}")
@@ -90,3 +85,6 @@ class PPTService:
                 yield f"PPT生成失败: {str(e)}\n"
                 return
         return generate_response
+
+# 创建全局实例供其他模块导入使用
+ppt_service = PPTService()

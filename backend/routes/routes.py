@@ -1,16 +1,18 @@
 from flask import Blueprint, request, jsonify, current_app, Response, send_file, stream_with_context
 from werkzeug.utils import secure_filename
 import os
-from services.ppt_service import PPTService
+from flask import Blueprint, request, jsonify, current_app, Response, send_file, stream_with_context
+from .ppt_service import PPTService
 
+# 创建Blueprint
 ppt_bp = Blueprint('ppt', __name__, url_prefix='/ppt')
 
 @ppt_bp.route('/download/<filename>', methods=['GET'])
 def download_ppt(filename):
     # 安全处理文件名
     safe_filename = secure_filename(filename)
-    # 假设生成的PPT保存在backend/static目录下
-    file_path = os.path.join(current_app.root_path, 'static', safe_filename)
+    # PPT保存在backend/temp目录下
+    file_path = os.path.join(current_app.root_path, 'temp', safe_filename)
     
     if not os.path.exists(file_path):
         return jsonify({'error': '文件不存在'}), 404

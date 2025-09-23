@@ -137,11 +137,11 @@ def replace_text_in_ppt(json_data, ppt_filename):
         xml_slides[:] = slides
         print(f"已删除幻灯片 {idx + 1}")
     
-    # 保存生成的PPT到backend/static目录
-    static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'static')
-    # 确保static目录存在
-    os.makedirs(static_dir, exist_ok=True)
-    new_filename = os.path.join(static_dir, 'modified_.pptx')
+    # 保存生成的PPT到backend/temp目录
+    temp_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'temp')
+    # 确保temp目录存在
+    os.makedirs(temp_dir, exist_ok=True)
+    new_filename = os.path.join(temp_dir, 'modified_.pptx')
     try:
         prs.save(new_filename)
         print(f"成功保存PPT文件到: {new_filename}")

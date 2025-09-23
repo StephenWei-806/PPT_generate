@@ -1,5 +1,5 @@
 from flask import Flask, jsonify, request
-from routes.ppt_routes import ppt_bp
+from routes.routes import ppt_bp
 
 app = Flask(__name__)
 app.config['DEBUG'] = True
