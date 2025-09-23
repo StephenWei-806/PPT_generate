@@ -1,0 +1,335 @@
+/* Header Component Styles */
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  background-color: var(--color-bg-primary);
+  border-bottom: 1px solid var(--color-border-primary);
+  backdrop-filter: blur(10px);
+  transition: all var(--transition-normal);
+}
+
+.header.scrolled {
+  background-color: rgba(255, 255, 255, 0.95);
+  box-shadow: var(--shadow-md);
+}
+
+/* Header容器 */
+.header-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-md) var(--spacing-lg);
+  max-width: var(--container-2xl);
+  margin: 0 auto;
+}
+
+/* Logo样式 */
+.header-logo {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  transition: color var(--transition-fast);
+}
+
+.header-logo:hover {
+  color: var(--color-primary);
+}
+
+.header-logo img {
+  height: 32px;
+  width: auto;
+  margin-right: var(--spacing-sm);
+}
+
+/* 导航菜单 */
+.header-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+}
+
+.nav-menu {
+  display: flex;
+  align-items: center;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: var(--spacing-lg);
+}
+
+.nav-item {
+  position: relative;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  padding: var(--spacing-sm) var(--spacing-md);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  font-weight: var(--font-weight-medium);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+}
+
+.nav-link:hover,
+.nav-link.active {
+  color: var(--color-primary);
+  background-color: var(--color-primary-light);
+}
+
+.nav-link.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 2px;
+  background-color: var(--color-primary);
+  border-radius: var(--radius-full);
+}
+
+/* 用户操作区域 */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: none;
+  color: var(--color-text-secondary);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.theme-toggle:hover {
+  color: var(--color-primary);
+  background-color: var(--color-primary-light);
+}
+
+/* 汉堡菜单按钮 */
+.mobile-menu-toggle {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  position: relative;
+}
+
+.hamburger {
+  display: flex;
+  flex-direction: column;
+  width: 24px;
+  height: 18px;
+  position: relative;
+}
+
+.hamburger-line {
+  display: block;
+  height: 2px;
+  width: 100%;
+  background-color: var(--color-text-primary);
+  border-radius: 1px;
+  transition: all var(--transition-normal);
+  transform-origin: center;
+}
+
+.hamburger-line:nth-child(1) {
+  margin-bottom: 6px;
+}
+
+.hamburger-line:nth-child(2) {
+  margin-bottom: 6px;
+}
+
+/* 汉堡菜单动画 */
+.mobile-menu-toggle.open .hamburger-line:nth-child(1) {
+  transform: translateY(8px) rotate(45deg);
+}
+
+.mobile-menu-toggle.open .hamburger-line:nth-child(2) {
+  opacity: 0;
+  transform: translateX(-20px);
+}
+
+.mobile-menu-toggle.open .hamburger-line:nth-child(3) {
+  transform: translateY(-8px) rotate(-45deg);
+}
+
+/* 移动端导航菜单 */
+.mobile-nav {
+  position: fixed;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: var(--color-bg-primary);
+  border-bottom: 1px solid var(--color-border-primary);
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-100%);
+  opacity: 0;
+  visibility: hidden;
+  transition: all var(--transition-normal);
+  z-index: var(--z-dropdown);
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
+}
+
+.mobile-nav.open {
+  transform: translateY(0);
+  opacity: 1;
+  visibility: visible;
+}
+
+.mobile-nav-menu {
+  list-style: none;
+  margin: 0;
+  padding: var(--spacing-md) 0;
+}
+
+.mobile-nav-item {
+  border-bottom: 1px solid var(--color-border-primary);
+}
+
+.mobile-nav-item:last-child {
+  border-bottom: none;
+}
+
+.mobile-nav-link {
+  display: flex;
+  align-items: center;
+  padding: var(--spacing-md) var(--spacing-lg);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  font-weight: var(--font-weight-medium);
+  transition: all var(--transition-fast);
+}
+
+.mobile-nav-link:hover,
+.mobile-nav-link.active {
+  color: var(--color-primary);
+  background-color: var(--color-primary-light);
+}
+
+.mobile-nav-link.active {
+  font-weight: var(--font-weight-semibold);
+}
+
+/* 移动端主题切换 */
+.mobile-theme-toggle {
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-top: 1px solid var(--color-border-primary);
+}
+
+/* 响应式断点 */
+@media (max-width: 768px) {
+  .header-container {
+    padding: var(--spacing-md);
+  }
+  
+  .header-nav {
+    display: none;
+  }
+  
+  .mobile-menu-toggle {
+    display: flex;
+  }
+  
+  .header-logo {
+    font-size: var(--font-size-lg);
+  }
+  
+  .header-actions {
+    gap: var(--spacing-sm);
+  }
+  
+  .theme-toggle {
+    width: 36px;
+    height: 36px;
+  }
+}
+
+@media (max-width: 640px) {
+  .header-container {
+    padding: var(--spacing-sm) var(--spacing-md);
+  }
+  
+  .header-logo {
+    font-size: var(--font-size-base);
+  }
+  
+  .header-logo img {
+    height: 28px;
+    margin-right: var(--spacing-xs);
+  }
+}
+
+/* 导航焦点环 */
+.nav-link:focus-visible,
+.mobile-nav-link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* 动画进入效果 */
+@keyframes slideInFromTop {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.header.animate-in {
+  animation: slideInFromTop 0.3s ease-out;
+}
+
+/* 深色模式特殊处理 */
+@media (prefers-color-scheme: dark) {
+  .header.scrolled {
+    background-color: rgba(17, 24, 39, 0.95);
+  }
+}
+
+[data-theme="dark"] .header.scrolled {
+  background-color: rgba(17, 24, 39, 0.95);
+}
+
+/* 毛玻璃效果支持检测 */
+@supports (backdrop-filter: blur(10px)) {
+  .header {
+    backdrop-filter: blur(10px);
+  }
+}
+
+@supports not (backdrop-filter: blur(10px)) {
+  .header {
+    background-color: var(--color-bg-primary);
+  }
+  
+  .header.scrolled {
+    background-color: var(--color-bg-primary);
+    box-shadow: var(--shadow-md);
+  }
+}

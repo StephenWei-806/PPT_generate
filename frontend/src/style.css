@@ -1,147 +1,100 @@
-/* 仅保留最基本的位置样式 */
-:root {
-  --primary-color: #4d6bfe;
-  --primary-light: rgba(77, 107, 254, 0.1);
-  --text-color: #333;
-  --text-secondary: #666;
-  --border-color: #e0e0e0;
-  --bg-color: #fff;
-  --bg-light: #f9f9f9;
-  --shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  --radius: 8px;
-  --transition: all 0.3s ease;
-}
+/* 新的响应式CSS架构 - 统一导入 */
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+/* 基础层 */
+@import './assets/css/base/reset.css';
+@import './assets/css/base/variables.css';
+@import './assets/css/base/typography.css';
 
+/* 布局层 */
+@import './assets/css/layout/grid.css';
+@import './assets/css/layout/utilities.css';
+
+/* 组件层 */
+@import './assets/css/components/card.css';
+@import './assets/css/components/button.css';
+@import './assets/css/components/form.css';
+@import './assets/css/components/header.css';
+
+/* 页面层 */
+@import './assets/css/pages/home.css';
+@import './assets/css/pages/settings.css';
+
+/* 全局应用样式 */
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-  color: var(--text-color);
-  background-color: var(--bg-color);
-  line-height: 1.6;
+  font-family: var(--font-family-sans);
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-primary);
+  line-height: var(--line-height-normal);
 }
 
-.container {
-  max-width: 2000px;
-  margin: 0 auto;
-  padding: 0 20px;
-}
-
-.flex {
+/* 应用主容器 */
+.app-container {
   display: flex;
-}
-
-.flex-col {
   flex-direction: column;
+  min-height: 100vh;
+  background-color: var(--color-bg-primary);
 }
 
-.items-center {
-  align-items: center;
-}
-
-.justify-center {
-  justify-content: center;
-}
-
-.justify-between {
-  justify-content: space-between;
-}
-
-.gap-4 {
-  gap: 16px;
-}
-
-.mt-4 {
-  margin-top: 16px;
-}
-
-.mb-4 {
-  margin-bottom: 16px;
-}
-
-.p-4 {
-  padding: 16px;
-}
-
-.border {
-  border: 1px solid var(--border-color);
-}
-
-.rounded {
-  border-radius: var(--radius);
-}
-
-.shadow {
-  box-shadow: var(--shadow);
-}
-
-button {
-  padding: 10px 20px;
-  background-color: var(--primary-color);
-  color: white;
-  border: none;
-  border-radius: var(--radius);
-  cursor: pointer;
-  transition: var(--transition);
-  font-weight: 500;
-}
-
-button:hover {
-  background-color: #3a59e0;
-}
-
-input, textarea, select {
-  padding: 10px;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius);
-  width: 100%;
-  font-size: 14px;
-}
-
-input:focus, textarea:focus, select:focus {
-  outline: none;
-  border-color: var(--primary-color);
-}
-
-h1, h2, h3, h4, h5, h6 {
-  font-weight: 600;
-  margin-bottom: 16px;
-}
-
-.card {
-  background-color: var(--bg-color);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 24px;
-  transition: var(--transition);
-}
-
-.card:hover {
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-}
-
-.header {
-  padding: 16px 0;
-  border-bottom: 1px solid var(--border-color);
-  background-color: var(--bg-color);
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-
-.footer {
-  padding: 24px 0;
-  border-top: 1px solid var(--border-color);
-  margin-top: 40px;
-  text-align: center;
-  color: var(--text-secondary);
-}
-
+/* 主内容区域 */
 .main-content {
-  min-height: calc(100vh - 120px);
-  padding: 24px 0;
+  flex: 1;
+  padding: var(--spacing-lg) 0;
+  min-height: calc(100vh - 140px);
+}
+
+/* 过渡和动画基础 */
+* {
+  transition: color var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+/* 无障碍访问支持 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* 高对比度模式支持 */
+@media (prefers-contrast: high) {
+  :root {
+    --color-border-primary: #000000;
+    --color-text-primary: #000000;
+    --color-bg-primary: #ffffff;
+  }
+}
+
+/* 聚焦可见性 */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* 选择文本样式 */
+::selection {
+  background-color: var(--color-primary-light);
+  color: var(--color-primary-dark);
+}
+
+/* 滚动条样式 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-secondary);
+  border-radius: var(--radius-sm);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-tertiary);
 }
