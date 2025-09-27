@@ -31,11 +31,21 @@ import os
 
 @app.route('/PPT_generate/<path:filename>')
 def serve_frontend(filename):
-    return send_from_directory(os.path.join(app.root_path, 'static', 'frontend'), filename)
+    response = send_from_directory(os.path.join(app.root_path, 'static', 'frontend'), filename)
+    # 添加缓存控制头
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
 
 @app.route('/PPT_generate/')
 def serve_index():
-    return send_from_directory(os.path.join(app.root_path, 'static', 'frontend'), 'index.html')
+    response = send_from_directory(os.path.join(app.root_path, 'static', 'frontend'), 'index.html')
+    # 添加缓存控制头
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
 
 if __name__ == '__main__':
     try:

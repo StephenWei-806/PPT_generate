@@ -8,7 +8,7 @@ from utils.json_utils import extract_json_from_text, validate_ppt_json
 class PPTService:
     """PPT服务类，用于生成PPT内容和处理相关操作"""
     
-    def generate_ppt_response(self, input_content, page_count, model, api_key):
+    def generate_ppt_response(self, input_content, page_count, model, api_key) :
         """生成PPT响应内容
         
         Args:
@@ -29,12 +29,24 @@ class PPTService:
             # 调用LLM服务生成内容
             # 直接使用用户输入内容作为提示词
             prompt = input_content
-            # 调用LLM服务生成内容
-            for chunk in LLMService().call_llm_api(prompt, page_count, model=model):
+            # 调用LLM服务生成内容，传入API密钥
+            for chunk in LLMService().call_llm_api(prompt, page_count, model=model, api_key=api_key):
+                # 检查是否是错误信息
+                if chunk.startswith("ERROR:"):
+                    yield f"错误: {chunk[6:]}建议检查API密钥和网络连接\n"
+                    return
+                
                 # 移除所有'data: '前缀，包括可能的空格和重复实例
                 clean_chunk = re.sub(r'^(data:\s*)+', '', chunk.strip(), flags=re.MULTILINE)
                 full_content += clean_chunk
                 yield clean_chunk
+            
+            # 检查是否收到了有效内容
+            if not full_content.strip():
+                yield "错误: 未收到LLM响应内容，请检查API密钥和网络连接\n"
+                return
+                
+            print(f"[调试] 收到的完整内容: {full_content[:200]}...")
             
             # 解析JSON并生成PPT
             # 清理Markdown代码块格式

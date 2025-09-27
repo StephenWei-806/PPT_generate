@@ -1,5 +1,6 @@
 import os
 from openai import OpenAI
+from openai.types.chat import ChatCompletionMessageParam
 
 class LLMService:
     """LLM服务类，用于调用大语言模型API生成PPT内容"""
@@ -9,13 +10,14 @@ class LLMService:
         # 设置默认模型
         self.default_model = os.getenv("DEFAULT_MODEL", "tongyi")
         
-    def call_llm_api(self, prompt, num, model=None):
+    def call_llm_api(self, prompt, num, model=None, api_key=None):
         """调用LLM API生成PPT内容
         
         Args:
             prompt (str): 要总结的内容
             num (int): 生成的PPT页数
             model (str, optional): 使用的LLM模型，默认为None(使用环境变量中的默认模型)
+            api_key (str, optional): API密钥，如果提供则优先使用，否则从环境变量获取
             
         return:
             str: 流式返回的响应内容
@@ -52,14 +54,22 @@ class LLMService:
             # API请求参数
             # 根据选择的模型配置OpenAI客户端
             if model == "tongyi":
+                # 优先使用传入的API密钥，否则从环境变量获取
+                api_key_to_use = api_key or os.getenv("DASHSCOPE_API_KEY")
+                if not api_key_to_use:
+                    raise ValueError("未找到通义千问API密钥，请在环境变量DASHSCOPE_API_KEY中设置或通过参数传入")
                 client = OpenAI(
-                    api_key=os.getenv("DASHSCOPE_API_KEY"),
+                    api_key=api_key_to_use,
                     base_url="https://dashscope.aliyuncs.com/compatible-mode/v1"
                 )
                 model_name = "qwen-plus"
             elif model == "deepseek":
+                # 优先使用传入的API密钥，否则从环境变量获取
+                api_key_to_use = api_key or os.getenv("DEEPSEEK_API_KEY")
+                if not api_key_to_use:
+                    raise ValueError("未找到DeepSeek API密钥，请在环境变量DEEPSEEK_API_KEY中设置或通过参数传入")
                 client = OpenAI(
-                    api_key=os.getenv("DEEPSEEK_API_KEY"),
+                    api_key=api_key_to_use,
                     base_url="https://api.deepseek.com"
                 )
                 model_name = "deepseek-chat"
@@ -67,7 +77,7 @@ class LLMService:
                 raise ValueError(f"不支持的模型: {model}")
 
             # 构造消息
-            messages = [
+            messages: list[ChatCompletionMessageParam] = [
                 {"role": "system", "content": "你是一个PPT制作专家，擅长将文本内容转换为结构化的PPT大纲。"},
                 {"role": "user", "content": f"{beg}"}
             ]
@@ -94,7 +104,9 @@ class LLMService:
             print(f"LLM响应完成，完整内容: {full_response}")
         except Exception as e:
             # 捕获OpenAI相关异常
-            print(f"LLM API调用失败: {str(e)}")
-            print(f"请求失败: {e}")
+            error_msg = f"LLM API调用失败: {str(e)}"
+            print(error_msg)
+            # 重要：必须yield错误信息，否则前端会收到空响应
+            yield f"ERROR: {error_msg}"
         finally:
             pass
