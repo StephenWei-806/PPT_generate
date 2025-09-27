@@ -114,18 +114,9 @@ DEEPSEEK_API_KEY=your_api_key
 
 ### 4. 生成PPT
 1. 在首页输入PPT内容描述
-2. （可选）上传自定义PPT模板，支持拖放上传
-3. 设置PPT页数(1-30页)
-4. 选择LLM模型（通义千问或DeepSeek）
-5. 输入相应的API密钥
-6. 点击“生成PPT”按钮
-7. 等待生成完成后，点击下载按钮获取PPT文件
-
-## 管理功能
-系统提供了一些管理接口：
-- **文件统计**：`GET /PPT_generate/ppt/admin/files` - 查看临时文件信息
-- **手动清理**：`POST /PPT_generate/ppt/admin/cleanup` - 手动清理临时文件
-- **文件下载**：`GET /PPT_generate/ppt/download/<filename>` - 下载生成的PPT
+2. 设置PPT页数(1-30)
+3. 点击"生成PPT"按钮
+4. 等待生成完成后，点击下载按钮获取PPT文件
 
 ## 注意事项
 1. **API密钥配置**：本项目需要有效的LLM API密钥才能正常工作
@@ -142,21 +133,5 @@ DEEPSEEK_API_KEY=your_api_key
 - 优化LLM提示词，提高内容质量
 - 添加用户认证和多用户支持
 - 实现PPT在线预览功能
-- 支持更多文件格式(.ppt、.odp等)
-- 添加批量生成和模板管理功能
-- 集成更多LLM提供商（ChatGPT、文心一言等）
-- 添加性能监控和错误追踪
-- 实现分布式部署和负载均衡
-
-## 部署说明
-项目提供多种部署方式：
-
-### 自动部署
-- **Windows**: 运行 `deploy.bat`
-- **Linux/Mac**: 运行 `deploy.sh`
-- **Python**: 运行 `python deploy.py`
-
-### 手动部署
-详细部署步骤请参考 [DEPLOYMENT.md](DEPLOYMENT.md)
 
 希望这个工具能帮助您节省制作PPT的时间，专注于内容创作！如果有任何问题或建议，欢迎提出。
