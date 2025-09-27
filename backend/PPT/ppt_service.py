@@ -1,14 +1,16 @@
 import json
 import re
+import os
 
 from .llm_service import LLMService
 from utils.ppt_utils import replace_text_in_ppt
 from utils.json_utils import extract_json_from_text, validate_ppt_json
+from utils.logger import ppt_logger
 
 class PPTService:
     """PPT服务类，用于生成PPT内容和处理相关操作"""
     
-    def generate_ppt_response(self, input_content, page_count, model, api_key) :
+    def generate_ppt_response(self, input_content, page_count, model, api_key, template_path=None):
         """生成PPT响应内容
         
         Args:
@@ -16,6 +18,7 @@ class PPTService:
             page_count (int): PPT页数
             model (str): 使用的LLM模型
             api_key (str): API密钥
+            template_path (str, optional): 模板文件路径
             
         return:
             function: 流式响应
@@ -43,10 +46,12 @@ class PPTService:
             
             # 检查是否收到了有效内容
             if not full_content.strip():
-                yield "错误: 未收到LLM响应内容，请检查API密钥和网络连接\n"
+                error_msg = "未收到LLM响应内容，请检查API密钥和网络连接"
+                ppt_logger.error(f"LLM响应异常: {error_msg}")
+                yield f"错误: {error_msg}\n"
                 return
                 
-            print(f"[调试] 收到的完整内容: {full_content[:200]}...")
+            ppt_logger.debug(f"收到的完整内容: {full_content[:200]}...")
             
             # 解析JSON并生成PPT
             # 清理Markdown代码块格式
@@ -59,11 +64,12 @@ class PPTService:
                 
                 # 解析提取出的JSON字符串
                 json_data = json.loads(json_str)
-                print(f"[调试] JSON解析成功: {json_data}")
+                ppt_logger.info(f"JSON解析成功 - 包含键: {list(json_data.keys())}")
                 
             except Exception as e:
-                
-                yield f"JSON解析失败: {str(e)}\n"
+                error_msg = f"JSON解析失败: {str(e)}"
+                ppt_logger.error(error_msg)
+                yield f"{error_msg}\n"
                 return
             
             # 验证JSON结构是否符合PPT要求
@@ -72,11 +78,12 @@ class PPTService:
                 if json_data is None:
                     raise ValueError("JSON数据未定义或为None")
                 validate_ppt_json(json_data)
+                ppt_logger.info("JSON结构验证通过")
                 
             except Exception as e:
-                print(f"[调试] JSON验证失败: {str(e)}")
-                
-                yield f"JSON验证失败: {str(e)}\n"
+                error_msg = f"JSON验证失败: {str(e)}"
+                ppt_logger.error(error_msg)
+                yield f"{error_msg}\n"
                 return
             
             # 替换PPT内容
@@ -84,19 +91,67 @@ class PPTService:
                 # 确保json_data已定义且不为None
                 if json_data is None:
                     raise ValueError("JSON数据未定义或为None")
-                # 使用正确的模板文件路径（位于backend目录下）
-                result_file = replace_text_in_ppt(json.dumps(json_data), 'ppt初版.pptx')
+                
+                # 选择模板文件路径
+                selected_template = self._select_template_path(template_path)
+                ppt_logger.info(f"使用模板文件: {selected_template}")
+                
+                # 生成PPT
+                result_file = replace_text_in_ppt(json.dumps(json_data), selected_template)
+                ppt_logger.log_ppt_generation(
+                    input_content, page_count, model, 'success', 
+                    selected_template, result_file
+                )
                 yield f"PPT生成成功: {result_file}\n"
                 
             except Exception as e:
-                print(f"[调试] PPT生成失败: {str(e)}")
+                error_msg = f"PPT生成失败: {str(e)}"
+                ppt_logger.log_ppt_generation(
+                    input_content, page_count, model, 'failed', 
+                    template_path, None, str(e)
+                )
                 
                 # 记录异常时的json_data值
-                print(f"[调试] 异常时json_data值: {json_data}")
+                ppt_logger.debug(f"异常时json_data值: {json_data}")
                 
-                yield f"PPT生成失败: {str(e)}\n"
+                yield f"{error_msg}\n"
                 return
         return generate_response
+    
+    def _select_template_path(self, template_path=None):
+        """选择要使用的模板文件路径
+        
+        Args:
+            template_path (str, optional): 用户上传的模板文件路径
+            
+        Returns:
+            str: 最终使用的模板文件路径
+            
+        Raises:
+            FileNotFoundError: 当没有可用的模板文件时
+        """
+        # 优先使用用户上传的模板文件
+        if template_path and os.path.exists(template_path):
+            return template_path
+        
+        # 回退到系统默认模板文件
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        backend_dir = os.path.dirname(current_dir)
+        default_template_paths = [
+            os.path.join(backend_dir, 'temp', 'default', 'ppt初版.pptx'),
+            os.path.join(backend_dir, 'ppt初版.pptx'),
+            'ppt初版.pptx'
+        ]
+        
+        for path in default_template_paths:
+            if os.path.exists(path):
+                ppt_logger.info(f"使用默认模板: {path}")
+                return path
+        
+        # 如果都不存在，抛出异常
+        error_msg = f"找不到可用的模板文件。已尝试的路径: {[template_path] + default_template_paths if template_path else default_template_paths}"
+        ppt_logger.error(error_msg)
+        raise FileNotFoundError(error_msg)
 
 # 创建全局实例供其他模块导入使用
 ppt_service = PPTService()

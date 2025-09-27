@@ -30,7 +30,19 @@ class VarData:
         return self.data.get(var)
 
 def replace_text_in_ppt(json_data, ppt_filename):
-    """替换PPT模板中的文本内容"""
+    """替换PPT模板中的文本内容
+    
+    Args:
+        json_data (str): JSON格式的PPT内容数据
+        ppt_filename (str): PPT模板文件路径（绝对路径或相对路径）
+        
+    Returns:
+        str: 生成的PPT文件路径
+        
+    Raises:
+        FileNotFoundError: 当模板文件不存在时
+        json.JSONDecodeError: 当JSON解析失败时
+    """
     try:
         data = json.loads(json_data)
         print(f"成功解析JSON数据，包含键: {list(data.keys())}")
@@ -40,8 +52,8 @@ def replace_text_in_ppt(json_data, ppt_filename):
 
     var_data = VarData(data)
     
-    # 获取动态资源路径
-    ppt_path = get_resource_path(ppt_filename)
+    # 获取模板文件路径
+    ppt_path = _resolve_template_path(ppt_filename)
     print(f"使用PPT模板路径: {ppt_path}")
 
     try:
@@ -49,7 +61,8 @@ def replace_text_in_ppt(json_data, ppt_filename):
         print(f"成功打开PPT模板，包含 {len(prs.slides)} 张幻灯片")
     except Exception as e:
         print(f"打开PPT模板失败: {str(e)}")
-        raise
+        print(f"尝试的模板路径: {ppt_path}")
+        raise FileNotFoundError(f"无法打开PPT模板文件: {ppt_path}. 原因: {str(e)}")
 
     slides_to_delete = []
 
@@ -137,11 +150,16 @@ def replace_text_in_ppt(json_data, ppt_filename):
         xml_slides[:] = slides
         print(f"已删除幻灯片 {idx + 1}")
     
-    # 保存生成的PPT到backend/temp目录
-    temp_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'temp')
-    # 确保temp目录存在
+    # 保存生成的PPT到backend/temp/generated目录
+    temp_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'temp', 'generated')
+    # 确俜temp/generated目录存在
     os.makedirs(temp_dir, exist_ok=True)
-    new_filename = os.path.join(temp_dir, 'modified_.pptx')
+    
+    # 生成唯一的文件名
+    import time
+    timestamp = str(int(time.time()))
+    new_filename = os.path.join(temp_dir, f'modified_{timestamp}.pptx')
+    
     try:
         prs.save(new_filename)
         print(f"成功保存PPT文件到: {new_filename}")
@@ -150,3 +168,41 @@ def replace_text_in_ppt(json_data, ppt_filename):
         raise
 
     return new_filename
+
+def _resolve_template_path(template_path):
+    """解析模板文件路径
+    
+    Args:
+        template_path (str): 模板文件路径（绝对路径或相对路径）
+        
+    Returns:
+        str: 解析后的绝对路径
+        
+    Raises:
+        FileNotFoundError: 当模板文件不存在时
+    """
+    # 如果是绝对路径且文件存在，直接返回
+    if os.path.isabs(template_path) and os.path.exists(template_path):
+        return template_path
+    
+    # 如果是相对路径，尝试多个位置
+    search_paths = [
+        # 直接使用原路径
+        template_path,
+        # 在当前工作目录中查找
+        os.path.join(os.getcwd(), template_path),
+        # 使用get_resource_path函数查找（兼容打包环境）
+        get_resource_path(template_path),
+        # 在backend目录中查找
+        os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), template_path),
+        # 在backend/temp/default目录中查找
+        os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'temp', 'default', os.path.basename(template_path))
+    ]
+    
+    for path in search_paths:
+        if os.path.exists(path):
+            print(f"[调试] 找到模板文件: {path}")
+            return path
+    
+    # 所有路径都不存在
+    raise FileNotFoundError(f"找不到模板文件: {template_path}。已尝试的路径: {search_paths}")

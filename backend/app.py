@@ -1,5 +1,8 @@
 from flask import Flask, jsonify, request
-from routes.routes import ppt_bp
+from PPT import routes
+from utils.file_cleanup import file_cleanup_manager
+from utils.logger import ppt_logger
+import atexit
 
 app = Flask(__name__)
 app.config['DEBUG'] = True
@@ -23,7 +26,16 @@ CORS(app, resources={
 })
 
 # 注册蓝图
-app.register_blueprint(ppt_bp, url_prefix='/ppt')
+app.register_blueprint(routes.ppt_bp, url_prefix='/PPT_generate')
+# 启动文件清理服务
+file_cleanup_manager.start_cleanup_service(app.root_path)
+ppt_logger.info("PPT应用初始化完成")
+
+# 注册关闭时的清理函数
+@atexit.register
+def cleanup():
+    ppt_logger.info("应用关闭，停止文件清理服务")
+    file_cleanup_manager.stop_cleanup_service()
 
 # 配置静态文件访问
 from flask import send_from_directory
