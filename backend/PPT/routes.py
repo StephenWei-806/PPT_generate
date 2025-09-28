@@ -10,7 +10,7 @@ from utils.file_cleanup import file_cleanup_manager
 
 
 # 创建Blueprint
-ppt_bp = Blueprint('ppt', __name__, url_prefix='/ppt')
+ppt_bp = Blueprint('ppt', __name__)
 
 @ppt_bp.route('/download/<filename>', methods=['GET'])
 def download_ppt(filename):

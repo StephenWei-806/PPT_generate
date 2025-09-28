@@ -188,6 +188,45 @@
   font-weight: var(--font-weight-medium);
 }
 
+/* 进度文本 */
+.progress-text {
+  font-size: var(--font-size-sm);
+  color: var(--color-primary);
+  margin-top: var(--spacing-sm);
+  font-weight: var(--font-weight-medium);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* 实时流输出 */
+.stream-content {
+  width: 100%;
+  margin-bottom: var(--spacing-lg);
+}
+
+.stream-output {
+  max-height: 300px;
+  overflow-y: auto;
+  background-color: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border-secondary);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+}
+
+.stream-output pre {
+  margin: 0;
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-relaxed);
+  color: var(--color-text-primary);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
 /* 结果内容 */
 .result-content {
   width: 100%;
@@ -427,4 +466,39 @@
     rgba(255, 255, 255, 0.1),
     transparent
   );
+}
+
+/* 下载区域样式 */
+.download-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.download-filename {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin: 0;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background-color: var(--color-bg-tertiary);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-secondary);
+  max-width: 100%;
+  word-break: break-all;
+}
+
+/* 文件验证错误提示 */
+.file-error {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: var(--color-error-light);
+  color: var(--color-error-dark);
+  padding: var(--spacing-sm);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  font-size: var(--font-size-sm);
+  text-align: center;
+  z-index: 10;
 }
