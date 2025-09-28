@@ -126,6 +126,18 @@
                   <div v-if="isGenerating" class="loading-state">
                     <div class="loading-spinner"></div>
                     <p class="loading-text">正在生成PPT，请稍候...</p>
+                    <div v-if="generationProgress" class="progress-text">
+                      {{ generationProgress }}
+                    </div>
+                  </div>
+                  
+                  <div v-if="streamContent && isGenerating" class="stream-content">
+                    <div class="form-group">
+                      <label class="form-label">实时输出</label>
+                      <div class="stream-output">
+                        <pre>{{ streamContent }}</pre>
+                      </div>
+                    </div>
                   </div>
                   
                   <div v-if="fullResponseContent && !isGenerating" class="result-content">
@@ -145,16 +157,19 @@
               
               <!-- 下载按钮 -->
               <div v-if="showDownloadButton" class="card-footer">
-                <a 
-                  :href="downloadUrl"
-                  download
-                  class="btn btn-success btn-lg"
-                >
-                  <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-                  </svg>
-                  下载PPT文件
-                </a>
+                <div class="download-info">
+                  <p class="download-filename">文件名：{{ downloadFilename }}</p>
+                  <a 
+                    :href="downloadUrl"
+                    download
+                    class="btn btn-success btn-lg"
+                  >
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                    </svg>
+                    下载PPT文件
+                  </a>
+                </div>
               </div>
             </div>
           </div>
@@ -175,18 +190,32 @@ const pageCount = ref(10)
 const templateFile = ref(null)
 const outputMessages = ref('')
 const fullResponseContent = ref('')
+const streamContent = ref('')
 const generationStarted = ref(false)
 const showDownloadButton = ref(false)
 const downloadUrl = ref('')
+const downloadFilename = ref('')
 const isGenerating = ref(false)
 const errors = ref({})
 const isDragOver = ref(false)
 const fileInput = ref(null)
+const generationProgress = ref('')
 
 // 计算属性
 const canGenerate = computed(() => {
   return inputContent.value.trim().length > 0 && pageCount.value >= 1 && pageCount.value <= 30
 })
+
+// 文件大小验证
+const validateFileSize = (file) => {
+  const maxSize = 10 * 1024 * 1024 // 10MB
+  return file.size <= maxSize
+}
+
+// 文件格式验证
+const validateFileFormat = (file) => {
+  return file.name.toLowerCase().endsWith('.pptx')
+}
 
 // 验证表单
 const validateForm = () => {
@@ -207,6 +236,18 @@ const validateForm = () => {
 const handleTemplateUpload = (event) => {
   const file = event.target.files?.[0]
   if (file) {
+    if (!validateFileFormat(file)) {
+      alert('请上传 .pptx 格式的文件')
+      event.target.value = '' // 清空输入
+      return
+    }
+    
+    if (!validateFileSize(file)) {
+      alert('文件大小不能超过10MB')
+      event.target.value = '' // 清空输入
+      return
+    }
+    
     templateFile.value = file
   }
 }
@@ -225,16 +266,23 @@ const handleDrop = (event) => {
   const files = event.dataTransfer?.files
   if (files && files.length > 0) {
     const file = files[0]
-    if (file.name.endsWith('.pptx')) {
-      templateFile.value = file
-      // 更新文件输入框
-      if (fileInput.value) {
-        const dt = new DataTransfer()
-        dt.items.add(file)
-        fileInput.value.files = dt.files
-      }
-    } else {
+    
+    if (!validateFileFormat(file)) {
       alert('请上传 .pptx 格式的文件')
+      return
+    }
+    
+    if (!validateFileSize(file)) {
+      alert('文件大小不能超过10MB')
+      return
+    }
+    
+    templateFile.value = file
+    // 更新文件输入框
+    if (fileInput.value) {
+      const dt = new DataTransfer()
+      dt.items.add(file)
+      fileInput.value.files = dt.files
     }
   }
 }
@@ -249,7 +297,11 @@ const generatePPT = async () => {
   generationStarted.value = true
   outputMessages.value = ''
   fullResponseContent.value = ''
+  streamContent.value = ''
+  generationProgress.value = ''
   showDownloadButton.value = false
+  downloadUrl.value = ''
+  downloadFilename.value = ''
   isGenerating.value = true
   errors.value = {}
 
@@ -283,50 +335,89 @@ const generatePPT = async () => {
     }
     
     const decoder = new TextDecoder()
+    let buffer = ''
 
     while (true) {
       const { done, value } = await reader.read()
       if (done) break
 
       const chunk = decoder.decode(value, { stream: true })
-      // 处理数据，去除前缀和结尾换行符
-      let processedChunk = chunk
+      buffer += chunk
       
-      if (processedChunk.startsWith('data: ')) {
-        processedChunk = processedChunk.substring(6) // 去除 'data: '
-      }
+      // 处理缓冲区中的完整行
+      const lines = buffer.split('\n')
+      buffer = lines.pop() || '' // 保留未完成的行
       
-      // 去除结尾的换行符
-      processedChunk = processedChunk.replace(/\n{2}$/, '').replace(/\n$/, '')
-
-      // 处理PPT生成成功消息中的路径
-      let displayChunk = processedChunk
-      if (processedChunk.includes('PPT生成成功: ')) {
-        const parts = processedChunk.split('PPT生成成功: ')
-        if (parts.length > 1) {
-          let filename = parts[1].trim()
-          const baseFilename = filename.split('/').pop().split('\\').pop()
-          displayChunk = parts[0] + 'PPT生成成功: ' + baseFilename
-        }
-      }
-
-      // 添加处理后的内容
-      outputMessages.value += displayChunk
-      fullResponseContent.value += displayChunk
-
-      // 检查是否包含下载信息
-      if (chunk.includes('PPT生成成功: ')) {
-        let filename = chunk.split('PPT生成成功: ')[1]?.trim()
-        if (filename) {
-          filename = filename.split('/').pop().split('\\').pop()
-          downloadUrl.value = `http://101.245.71.8/PPT_generate/ppt/download/${filename}`
-          showDownloadButton.value = true
+      for (const line of lines) {
+        if (line.trim()) {
+          let processedLine = line
+          
+          // 清理数据格式
+          if (processedLine.startsWith('data: ')) {
+            processedLine = processedLine.substring(6)
+          }
+          
+          // 清理额外的换行符
+          processedLine = processedLine.replace(/\n+$/, '')
+          
+          if (processedLine.trim()) {
+            // 检查是否包含错误信息
+            if (processedLine.includes('错误:') || processedLine.includes('ERROR:')) {
+              streamContent.value += processedLine + '\n'
+              fullResponseContent.value += processedLine + '\n'
+              generationProgress.value = '生成失败'
+              continue
+            }
+            
+            // 处理PPT生成成功消息
+            if (processedLine.includes('PPT生成成功: ')) {
+              const parts = processedLine.split('PPT生成成功: ')
+              if (parts.length > 1) {
+                let filename = parts[1].trim()
+                // 提取文件名（去除路径）
+                const baseFilename = filename.split('/').pop().split('\\').pop()
+                downloadFilename.value = baseFilename
+                downloadUrl.value = `http://101.245.71.8/PPT_generate/ppt/download/${baseFilename}`
+                showDownloadButton.value = true
+                
+                const displayMessage = parts[0] + 'PPT生成成功: ' + baseFilename
+                streamContent.value += displayMessage + '\n'
+                fullResponseContent.value += displayMessage + '\n'
+                generationProgress.value = '生成完成'
+              }
+            } else {
+              // 普通内容更新
+              streamContent.value += processedLine + '\n'
+              fullResponseContent.value += processedLine + '\n'
+              
+              // 更新生成进度提示
+              if (processedLine.includes('JSON')) {
+                generationProgress.value = '正在解析内容结构...'
+              } else if (processedLine.includes('验证')) {
+                generationProgress.value = '正在验证内容格式...'
+              } else if (processedLine.includes('模板')) {
+                generationProgress.value = '正在处理模板文件...'
+              } else if (processedLine.includes('生成')) {
+                generationProgress.value = '正在生成PPT文件...'
+              }
+            }
+          }
         }
       }
     }
+    
+    // 处理缓冲区中剩余的内容
+    if (buffer.trim()) {
+      streamContent.value += buffer
+      fullResponseContent.value += buffer
+    }
+    
   } catch (error) {
     console.error('生成PPT错误:', error)
-    fullResponseContent.value = '生成失败: ' + error.message
+    const errorMessage = '生成失败: ' + error.message
+    streamContent.value += errorMessage + '\n'
+    fullResponseContent.value += errorMessage + '\n'
+    generationProgress.value = '生成失败'
     errors.value.general = error.message
   } finally {
     isGenerating.value = false
