@@ -26,7 +26,7 @@ CORS(app, resources={
 })
 
 # 注册蓝图
-app.register_blueprint(routes.ppt_bp, url_prefix='/PPT_generate')
+app.register_blueprint(routes.ppt_bp, url_prefix='/PPT_generate/ppt')
 # 启动文件清理服务
 file_cleanup_manager.start_cleanup_service(app.root_path)
 ppt_logger.info("PPT应用初始化完成")
