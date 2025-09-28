@@ -3,8 +3,8 @@ import os
 import time
 
 
-from ppt_service import PPTService
-from PPT_upload import ppt_upload_service
+from .ppt_service import PPTService
+from .PPT_upload import ppt_upload_service
 from utils.logger import ppt_logger
 from utils.file_cleanup import file_cleanup_manager
 

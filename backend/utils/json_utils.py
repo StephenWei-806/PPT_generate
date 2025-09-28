@@ -6,6 +6,7 @@ def extract_json_from_text(text):
     text = text.replace("```json", "").replace("```", "")
 
     # 尝试使用json模块直接解析
+    json_str = None
     try:
         # 尝试从文本中提取并解析JSON
         # 查找JSON的开始和结束位置
@@ -33,32 +34,42 @@ def extract_json_from_text(text):
         return json_str
     except json.JSONDecodeError as e:
         # 尝试修复常见问题，如多余的逗号
-        try:
-            # 移除末尾多余的逗号
-            json_str = json_str.rstrip(',')
-            json_data = json.loads(json_str)
-            return json_str
-        except:
-            raise ValueError(f"JSON格式无效: {str(e)}")
+        if json_str:
+            try:
+                # 移除末尾多余的逗号
+                fixed_json_str = json_str.rstrip(',')
+                json_data = json.loads(fixed_json_str)
+                return fixed_json_str
+            except:
+                pass
+        raise ValueError(f"JSON格式无效: {str(e)}")
     except Exception as e:
         raise ValueError(f"无法提取有效的JSON: {str(e)}")
 
 # 添加一个辅助函数来验证JSON结构是否符合PPT要求
 def validate_ppt_json(json_data):
+    """验证JSON结构是否符合PPT要求
+    
+    Args:
+        json_data (dict): 要验证的JSON数据
+        
+    Raises:
+        ValueError: 当JSON结构不符合要求时
+    """
     try:
         if not isinstance(json_data, dict):
-            return False, "JSON必须是一个对象"
+            raise ValueError("JSON必须是一个对象")
         
         # 检查必需字段
         required_fields = ['title', 'name']
         for field in required_fields:
             if field not in json_data:
-                return False, f"缺少必需字段: {field}"
+                raise ValueError(f"缺少必需字段: {field}")
         
         # 检查页面结构
         page_keys = [key for key in json_data.keys() if key.startswith('title') and len(key) == 6 and key[5].isdigit()]
         if not page_keys:
-            return False, "缺少页面标题字段，格式应为titleN"
+            raise ValueError("缺少页面标题字段，格式应为titleN")
         
         for page_key in page_keys:
             page_num = page_key[5]
@@ -66,13 +77,15 @@ def validate_ppt_json(json_data):
             for i in range(1, 4):
                 sub_title_key = f"title{page_num}-{i}"
                 if sub_title_key not in json_data:
-                    return False, f"缺少子标题字段: {sub_title_key}"
+                    raise ValueError(f"缺少子标题字段: {sub_title_key}")
             # 检查数据字段
             for i in range(1, 4):
                 data_key = f"data{page_num}-{i}"
                 if data_key not in json_data:
-                    return False, f"缺少数据字段: {data_key}"
-        
-        return True, "JSON结构验证通过"
+                    raise ValueError(f"缺少数据字段: {data_key}")
+                    
     except Exception as e:
-        return False, f"验证过程中发生错误: {str(e)}"
+        if isinstance(e, ValueError):
+            raise
+        else:
+            raise ValueError(f"验证过程中发生错误: {str(e)}")
