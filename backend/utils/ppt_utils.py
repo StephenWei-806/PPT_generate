@@ -5,7 +5,7 @@ import json
 from pptx import Presentation
 from pptx.dml.color import RGBColor
 
-# 动态获取资源文件路径（支持开发环境和PyInstaller打包环境）
+# 动态获取资源文件路径（支持开发环境和PyInstaller打包环境）（AI写的）
 def get_resource_path(relative_path):
     if hasattr(sys, '_MEIPASS'):
         # 打包后路径（资源文件位于_MEIPASS临时目录）
