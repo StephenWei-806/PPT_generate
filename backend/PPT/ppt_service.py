@@ -8,7 +8,9 @@ from utils.json_utils import extract_json_from_text, validate_ppt_json
 from utils.logger import ppt_logger
 
 class PPTService:
-    """PPT服务类，用于生成PPT内容和处理相关操作"""
+    """
+    PPT服务类，用于生成PPT内容和处理相关操作
+    """
     
     def generate_ppt_response(self, input_content, page_count, model, api_key, template_path=None):
         """生成PPT响应内容
@@ -19,13 +21,10 @@ class PPTService:
             model (str): 使用的LLM模型
             api_key (str): API密钥
             template_path (str, optional): 模板文件路径
-            
         return:
             function: 流式响应
         """
-        json_data = None  # 在外部函数也初始化变量
         def generate_response():
-            nonlocal json_data  # 使用nonlocal关键字访问外部函数的变量
             full_content = ""
             json_data = None  # 在函数最开始再次初始化变量
             
@@ -56,7 +55,6 @@ class PPTService:
             # 解析JSON并生成PPT
             # 清理Markdown代码块格式
             full_content = full_content.replace('```json', '').replace('```', '').strip()
-            
             
             try:
                 # 尝试从文本中提取JSON

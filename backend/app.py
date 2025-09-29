@@ -15,12 +15,12 @@ from flask_cors import CORS
 CORS(app, resources={
     r"/ppt/*": {
         "origins": "*",
-        "methods": ["GET", "POST", "OPTIONS"],
+        "methods": ["GET", "POST"],
         "allow_headers": ["Content-Type", "Authorization"]
     },
     r"/PPT_generate/ppt/*": {
         "origins": "*",
-        "methods": ["GET", "POST", "OPTIONS"],
+        "methods": ["GET", "POST"],
         "allow_headers": ["Content-Type", "Authorization"]
     }
 })

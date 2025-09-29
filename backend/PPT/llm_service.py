@@ -1,9 +1,10 @@
 import os
 from openai import OpenAI
-from openai.types.chat import ChatCompletionMessageParam
 
 class LLMService:
-    """LLM服务类，用于调用大语言模型API生成PPT内容"""
+    """
+    调用大语言模型API生成PPT内容
+    """
     
     def __init__(self):
         """初始化LLM服务"""
@@ -54,20 +55,18 @@ class LLMService:
             # API请求参数
             # 根据选择的模型配置OpenAI客户端
             if model == "tongyi":
-                # 优先使用传入的API密钥，否则从环境变量获取
-                api_key_to_use = api_key or os.getenv("DASHSCOPE_API_KEY")
+                api_key_to_use = api_key or None
                 if not api_key_to_use:
-                    raise ValueError("未找到通义千问API密钥，请在环境变量DASHSCOPE_API_KEY中设置或通过参数传入")
+                    raise ValueError("未找到通义千问API密钥")
                 client = OpenAI(
                     api_key=api_key_to_use,
                     base_url="https://dashscope.aliyuncs.com/compatible-mode/v1"
                 )
                 model_name = "qwen-plus"
             elif model == "deepseek":
-                # 优先使用传入的API密钥，否则从环境变量获取
-                api_key_to_use = api_key or os.getenv("DEEPSEEK_API_KEY")
+                api_key_to_use = api_key or "sk-7d7da68c64da4aa1b9733f2635e5cc42" 
                 if not api_key_to_use:
-                    raise ValueError("未找到DeepSeek API密钥，请在环境变量DEEPSEEK_API_KEY中设置或通过参数传入")
+                    raise ValueError("未找到DeepSeek API密钥")
                 client = OpenAI(
                     api_key=api_key_to_use,
                     base_url="https://api.deepseek.com"
@@ -77,7 +76,7 @@ class LLMService:
                 raise ValueError(f"不支持的模型: {model}")
 
             # 构造消息
-            messages: list[ChatCompletionMessageParam] = [
+            messages: list[dict[str, str]] = [
                 {"role": "system", "content": "你是一个PPT制作专家，擅长将文本内容转换为结构化的PPT大纲。"},
                 {"role": "user", "content": f"{beg}"}
             ]
@@ -93,7 +92,7 @@ class LLMService:
             
             # 处理流式响应
             full_response = ""
-            print("开始接收LLM响应...")
+            #print("开始接收LLM响应...")
             for chunk in response:
                 if chunk.choices:
                     content = chunk.choices[0].delta.content
@@ -101,7 +100,7 @@ class LLMService:
                         full_response += content
                         print(f"收到LLM响应片段: {content}")
                         yield content
-            print(f"LLM响应完成，完整内容: {full_response}")
+            #print(f"LLM响应完成，完整内容: {full_response}")
         except Exception as e:
             # 捕获OpenAI相关异常
             error_msg = f"LLM API调用失败: {str(e)}"
