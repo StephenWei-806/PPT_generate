@@ -201,6 +201,12 @@ const isDragOver = ref(false)
 const fileInput = ref(null)
 const generationProgress = ref('')
 
+// 新增状态用于流式响应和PPT生成分离
+const currentSessionId = ref('')
+const streamingComplete = ref(false)
+const pptGenerating = ref(false)
+const currentPhase = ref('IDLE') // IDLE, STREAMING, STREAM_COMPLETE, PPT_GENERATING, COMPLETED, ERROR
+
 // 计算属性
 const canGenerate = computed(() => {
   return inputContent.value.trim().length > 0 && pageCount.value >= 1 && pageCount.value <= 30
@@ -287,13 +293,37 @@ const handleDrop = (event) => {
   }
 }
 
-// 生成PPT处理函数
+// 生成PPT处理函数 - 拆分为两个阶段
 const generatePPT = async () => {
   if (!validateForm()) {
     return
   }
 
   // 重置状态
+  resetGenerationState()
+  currentPhase.value = 'STREAMING'
+
+  try {
+    // 第一阶段：上传模板文件（如果有）
+    let templateInfo = { hasTemplate: false }
+    if (templateFile.value) {
+      templateInfo = await uploadTemplateFile()
+    }
+    
+    // 第二阶段：流式响应LLM内容
+    const fullContent = await streamLLMContent()
+    
+    // 第三阶段：生成PPT
+    await generatePPTFromContent(fullContent, templateInfo)
+    
+  } catch (error) {
+    console.error('生成PPT错误:', error)
+    handleError(error)
+  }
+}
+
+// 重置生成状态
+const resetGenerationState = () => {
   generationStarted.value = true
   outputMessages.value = ''
   fullResponseContent.value = ''
@@ -304,124 +334,194 @@ const generatePPT = async () => {
   downloadFilename.value = ''
   isGenerating.value = true
   errors.value = {}
+  currentSessionId.value = ''
+  streamingComplete.value = false
+  pptGenerating.value = false
+  currentPhase.value = 'IDLE'
+}
 
-  try {
-    // 创建表单数据
-    const formData = new FormData()
-    formData.append('inputContent', inputContent.value)
-    formData.append('pageCount', pageCount.value.toString())
-    formData.append('model', settingsStore.selectedAPI)
-    formData.append('apiKey', settingsStore.apiKey)
+// 第一阶段：上传模板文件
+const uploadTemplateFile = async () => {
+  if (!templateFile.value) {
+    return { hasTemplate: false }
+  }
+  
+  generationProgress.value = '正在上传模板文件...'
+  
+  const formData = new FormData()
+  formData.append('template', templateFile.value)
+  
+  const response = await fetch('/PPT_generate/ppt/upload-template', {
+    method: 'POST',
+    body: formData
+  })
+  
+  if (!response.ok) {
+    throw new Error(`模板文件上传失败: ${response.statusText}`)
+  }
+  
+  const result = await response.json()
+  if (!result.success) {
+    throw new Error(result.error || '模板文件上传失败')
+  }
+  
+  return {
+    hasTemplate: true,
+    filename: result.filename
+  }
+}
 
-    // 如果有模板文件，添加到表单数据
-    if (templateFile.value) {
-      formData.append('template', templateFile.value)
-    }
+// 第二阶段：流式响应LLM内容
+const streamLLMContent = async () => {
+  generationProgress.value = '正在调用AI模型生成内容...'
+  
+  // 创建表单数据
+  const formData = new FormData()
+  formData.append('inputContent', inputContent.value)
+  formData.append('pageCount', pageCount.value.toString())
+  formData.append('model', settingsStore.selectedAPI)
+  formData.append('apiKey', settingsStore.apiKey)
 
-    // 发送生成请求
-    const response = await fetch('http://101.245.71.8/PPT_generate/ppt/generate', {
-      method: 'POST',
-      body: formData
-    })
+  // 发送流式请求到stream端点
+  const response = await fetch('/PPT_generate/ppt/stream', {
+    method: 'POST',
+    body: formData
+  })
 
-    if (!response.ok) {
-      throw new Error(`生成PPT失败: ${response.statusText}`)
-    }
+  if (!response.ok) {
+    throw new Error(`请求失败: ${response.statusText}`)
+  }
 
-    // 处理流式响应
-    const reader = response.body?.getReader()
-    if (!reader) {
-      throw new Error('无法读取响应数据')
-    }
+  // 处理流式响应
+  const reader = response.body?.getReader()
+  if (!reader) {
+    throw new Error('无法读取响应数据')
+  }
+  
+  const decoder = new TextDecoder()
+  let buffer = ''
+  let fullContent = ''
+  let streamComplete = false
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+
+    const chunk = decoder.decode(value, { stream: true })
+    buffer += chunk
     
-    const decoder = new TextDecoder()
-    let buffer = ''
-
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
-
-      const chunk = decoder.decode(value, { stream: true })
-      buffer += chunk
-      
-      // 处理缓冲区中的完整行
-      const lines = buffer.split('\n')
-      buffer = lines.pop() || '' // 保留未完成的行
-      
-      for (const line of lines) {
-        if (line.trim()) {
-          let processedLine = line
-          
-          // 清理数据格式
-          if (processedLine.startsWith('data: ')) {
-            processedLine = processedLine.substring(6)
+    // 处理缓冲区中的完整行
+    const lines = buffer.split('\n')
+    buffer = lines.pop() || '' // 保留未完成的行
+    
+    for (const line of lines) {
+      if (line.trim()) {
+        let processedLine = line.trim()
+        
+        if (processedLine) {
+          // 检查是否包含错误信息
+          if (processedLine.includes('错误:') || processedLine.includes('ERROR:')) {
+            streamContent.value += processedLine + '\n'
+            fullResponseContent.value += processedLine + '\n'
+            generationProgress.value = '流式响应失败'
+            currentPhase.value = 'ERROR'
+            throw new Error(processedLine)
           }
           
-          // 清理额外的换行符
-          processedLine = processedLine.replace(/\n+$/, '')
+          // 检查流式响应是否完成
+          if (processedLine === 'STREAM_COMPLETE') {
+            streamComplete = true
+            generationProgress.value = '流式响应完成'
+            currentPhase.value = 'STREAM_COMPLETE'
+            break
+          }
           
-          if (processedLine.trim()) {
-            // 检查是否包含错误信息
-            if (processedLine.includes('错误:') || processedLine.includes('ERROR:')) {
-              streamContent.value += processedLine + '\n'
-              fullResponseContent.value += processedLine + '\n'
-              generationProgress.value = '生成失败'
-              continue
-            }
-            
-            // 处理PPT生成成功消息
-            if (processedLine.includes('PPT生成成功: ')) {
-              const parts = processedLine.split('PPT生成成功: ')
-              if (parts.length > 1) {
-                let filename = parts[1].trim()
-                // 提取文件名（去除路径）
-                const baseFilename = filename.split('/').pop().split('\\').pop()
-                downloadFilename.value = baseFilename
-                downloadUrl.value = `http://101.245.71.8/PPT_generate/ppt/download/${baseFilename}`
-                showDownloadButton.value = true
-                
-                const displayMessage = parts[0] + 'PPT生成成功: ' + baseFilename
-                streamContent.value += displayMessage + '\n'
-                fullResponseContent.value += displayMessage + '\n'
-                generationProgress.value = '生成完成'
-              }
-            } else {
-              // 普通内容更新
-              streamContent.value += processedLine + '\n'
-              fullResponseContent.value += processedLine + '\n'
-              
-              // 更新生成进度提示
-              if (processedLine.includes('JSON')) {
-                generationProgress.value = '正在解析内容结构...'
-              } else if (processedLine.includes('验证')) {
-                generationProgress.value = '正在验证内容格式...'
-              } else if (processedLine.includes('模板')) {
-                generationProgress.value = '正在处理模板文件...'
-              } else if (processedLine.includes('生成')) {
-                generationProgress.value = '正在生成PPT文件...'
-              }
-            }
+          // 更新内容显示
+          streamContent.value += processedLine + '\n'
+          fullResponseContent.value += processedLine + '\n'
+          fullContent += processedLine + '\n'
+          
+          // 更新生成进度提示
+          if (processedLine.includes('title') || processedLine.includes('页面')) {
+            generationProgress.value = '正在生成PPT内容...'
           }
         }
       }
     }
     
-    // 处理缓冲区中剩余的内容
-    if (buffer.trim()) {
-      streamContent.value += buffer
-      fullResponseContent.value += buffer
-    }
-    
-  } catch (error) {
-    console.error('生成PPT错误:', error)
-    const errorMessage = '生成失败: ' + error.message
-    streamContent.value += errorMessage + '\n'
-    fullResponseContent.value += errorMessage + '\n'
-    generationProgress.value = '生成失败'
-    errors.value.general = error.message
-  } finally {
-    isGenerating.value = false
+    if (streamComplete) break
   }
+  
+  // 处理缓冲区中剩余的内容
+  if (buffer.trim() && !streamComplete) {
+    streamContent.value += buffer
+    fullResponseContent.value += buffer
+    fullContent += buffer
+  }
+  
+  if (!fullContent.trim()) {
+    throw new Error('未收到有效的LLM响应内容')
+  }
+  
+  return fullContent
+}
+
+// 第三阶段：基于完整内容生成PPT
+const generatePPTFromContent = async (fullContent, templateInfo) => {
+  generationProgress.value = '正在生成PPT文件...'
+  currentPhase.value = 'PPT_GENERATING'
+  
+  const requestData = {
+    fullContent: fullContent,
+    inputContent: inputContent.value,
+    pageCount: pageCount.value,
+    model: settingsStore.selectedAPI,
+    templateInfo: templateInfo
+  }
+  
+  const response = await fetch('/PPT_generate/ppt/generate', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(requestData)
+  })
+  
+  if (!response.ok) {
+    const errorText = await response.text()
+    throw new Error(`PPT生成请求失败: ${response.status} ${errorText}`)
+  }
+  
+  const result = await response.json()
+  
+  if (!result.success) {
+    throw new Error(result.error || 'PPT生成失败')
+  }
+  
+  // PPT生成成功
+  downloadFilename.value = result.filename
+  downloadUrl.value = `/PPT_generate/ppt/download/${result.filename}`
+  showDownloadButton.value = true
+  generationProgress.value = 'PPT生成完成'
+  currentPhase.value = 'COMPLETED'
+  streamingComplete.value = true
+  isGenerating.value = false
+  
+  // 更新流式内容显示成功信息
+  streamContent.value += `\nPPT生成成功: ${result.filename}\n`
+  fullResponseContent.value += `\nPPT生成成功: ${result.filename}\n`
+}
+
+// 错误处理
+const handleError = (error) => {
+  const errorMessage = '生成失败: ' + error.message
+  streamContent.value += errorMessage + '\n'
+  fullResponseContent.value += errorMessage + '\n'
+  generationProgress.value = '生成失败'
+  errors.value.general = error.message
+  currentPhase.value = 'ERROR'
+  isGenerating.value = false
+  pptGenerating.value = false
 }
 
 // 组件挂载时加载设置
